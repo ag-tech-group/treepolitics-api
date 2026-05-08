@@ -1,4 +1,13 @@
 services:
+  migrate:
+    build: .
+    command: ["uv", "run", "alembic", "upgrade", "head"]
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/api_template
+    depends_on:
+      db:
+        condition: service_healthy
+
   api:
     build: .
     ports:
@@ -10,6 +19,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     volumes:
       - ./app:/app/app  # Hot reload in development
 
