@@ -227,6 +227,46 @@ uv run alembic history
 uv run alembic revision --autogenerate -m "description"
 ```
 
+## Production Deployment (Cloud Run)
+
+The API runs on Cloud Run in GCP project `treepolitics-prod` (region `us-east1`), backed by a Cloud SQL Postgres instance and Secret Manager.
+
+### Deploy a new revision
+
+From a clean working tree on `main`:
+
+```bash
+./scripts/deploy.sh
+```
+
+The script builds via Cloud Build, pushes to Artifact Registry tagged with the current git short-SHA, and deploys a new Cloud Run revision pinned to that image.
+
+### Run migrations against prod
+
+Migrations are **not** auto-applied on container start. Run them separately before deploying a revision that introduces schema changes:
+
+```bash
+# Terminal 1 — start the Cloud SQL Auth Proxy
+cloud-sql-proxy --address 127.0.0.1 --port 5432 \
+  treepolitics-prod:us-east1:treepolitics-db
+
+# Terminal 2 — run migrations against the proxy
+DATABASE_URL="postgresql+asyncpg://app:<password>@127.0.0.1:5432/treepolitics" \
+  uv run alembic upgrade head
+```
+
+The DB user password is in Secret Manager (not committed).
+
+### Infrastructure (one-time setup, already provisioned)
+
+- **Cloud SQL Postgres 16** (`treepolitics-db`, `db-f1-micro`, zonal, us-east1) — public IP, no authorized networks; only reachable via the Cloud SQL connector.
+- **Artifact Registry** docker repo `api` in us-east1.
+- **Runtime SA** `treepolitics-api-runtime@treepolitics-prod.iam.gserviceaccount.com` with `roles/cloudsql.client` and `roles/secretmanager.secretAccessor` (scoped to `DATABASE_URL` and `SECRET_KEY`).
+- **Secrets** in Secret Manager: `DATABASE_URL`, `SECRET_KEY`.
+- **Custom domain** `api.treepolitics.net` via Cloud Run domain mapping.
+
+CI/CD (auto-deploy on merge to `main`) is tracked in [issue #5](https://github.com/ag-tech-group/treepolitics-api/issues/5).
+
 ## Testing
 
 Tests use SQLite in-memory for speed and isolation.
