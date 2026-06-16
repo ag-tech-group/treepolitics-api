@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 # Manual deploy of the Treepolitics API to Cloud Run.
 #
-# Until Phase D (#5) wires up GitHub Actions auto-deploy, run this from a clean
-# working tree to ship a new revision. Migrations are NOT applied here — run
-# them separately via cloud-sql-proxy (see README "Production Deployment").
+# Auto-deploy is live: GitHub Actions ships every merge to `main` to Cloud Run
+# via Workload Identity Federation (see .github/workflows/deploy.yml). This
+# script is the manual fallback — run it from a clean working tree to push a
+# revision out-of-band. Migrations are NOT applied here — run them separately
+# via cloud-sql-proxy (see README "Production Deployment").
 
 set -euo pipefail
 
