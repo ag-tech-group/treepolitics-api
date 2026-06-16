@@ -233,10 +233,10 @@ The API runs on Cloud Run in GCP project `treepolitics-prod` (region `us-east1`)
 
 ### Deploy a new revision
 
-From a clean working tree on `main`:
+From a clean working tree on `main` (set `GCP_ACCOUNT` to your gcloud deploy account):
 
 ```bash
-./scripts/deploy.sh
+GCP_ACCOUNT=you@example.com ./scripts/deploy.sh
 ```
 
 The script builds via Cloud Build, pushes to Artifact Registry tagged with the current git short-SHA, and deploys a new Cloud Run revision pinned to that image.
