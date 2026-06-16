@@ -1,0 +1,54 @@
+# Auto-deploy the API to Cloud Run on merge to main.
+# Authenticates to GCP via Workload Identity Federation (no stored SA keys).
+# Mirrors scripts/deploy.sh.
+#
+# NOTE: database migrations are NOT run here — apply them separately via the
+# Cloud SQL Auth Proxy before a schema-changing deploy (see README
+# "Production Deployment"). This avoids migration races across concurrent
+# revisions and slow cold starts.
+name: Deploy to Cloud Run
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  id-token: write # required to mint the OIDC token for WIF
+
+concurrency:
+  group: deploy-cloud-run
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to GCP (Workload Identity Federation)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/825485923973/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+          service_account: github-deployer@treepolitics-prod.iam.gserviceaccount.com
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Build & push image (Cloud Build)
+        run: |
+          IMAGE="us-east1-docker.pkg.dev/treepolitics-prod/api/api:${GITHUB_SHA::7}"
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+          gcloud builds submit --tag "$IMAGE" --project=treepolitics-prod
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy treepolitics-api \
+            --image="$IMAGE" \
+            --region=us-east1 \
+            --service-account=treepolitics-api-runtime@treepolitics-prod.iam.gserviceaccount.com \
+            --add-cloudsql-instances=treepolitics-prod:us-east1:treepolitics-db \
+            --set-env-vars="^|^ENVIRONMENT=production|COOKIE_DOMAIN=.treepolitics.net|FRONTEND_URL=https://treepolitics.net|CORS_ORIGINS=https://treepolitics.net,https://www.treepolitics.net" \
+            --set-secrets="DATABASE_URL=DATABASE_URL:latest,SECRET_KEY=SECRET_KEY:latest" \
+            --allow-unauthenticated \
+            --project=treepolitics-prod
