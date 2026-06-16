@@ -35,13 +35,13 @@ jobs:
 
       - uses: google-github-actions/setup-gcloud@v2
 
-      - name: Build & push image (Cloud Build)
+      - name: Build & push image
         run: |
           IMAGE="us-east1-docker.pkg.dev/treepolitics-prod/api/api:${GITHUB_SHA::7}"
           echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
-          # --suppress-logs: the scoped deploy SA can't stream Cloud Build logs
-          # (that needs project Viewer/Owner); gcloud still waits for the build.
-          gcloud builds submit --tag "$IMAGE" --project=treepolitics-prod --suppress-logs
+          gcloud auth configure-docker us-east1-docker.pkg.dev --quiet
+          docker build -t "$IMAGE" .
+          docker push "$IMAGE"
 
       - name: Deploy to Cloud Run
         run: |
