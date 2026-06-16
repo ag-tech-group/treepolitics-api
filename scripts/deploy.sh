@@ -8,7 +8,15 @@
 set -euo pipefail
 
 PROJECT="treepolitics-prod"
-ACCOUNT="amr@agtechgroup.solutions"
+# Deployer's gcloud account. Set GCP_ACCOUNT so no personal email is baked into
+# git history and each deployer uses their own identity (we deliberately do NOT
+# fall back to the active gcloud account, to avoid deploying as the wrong one).
+ACCOUNT="${GCP_ACCOUNT:-}"
+if [ -z "${ACCOUNT}" ]; then
+  echo "Set GCP_ACCOUNT to the gcloud account to deploy with, e.g.:" >&2
+  echo "  GCP_ACCOUNT=you@example.com ./scripts/deploy.sh" >&2
+  exit 1
+fi
 REGION="us-east1"
 SERVICE="treepolitics-api"
 REPO="api"
