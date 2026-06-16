@@ -39,7 +39,9 @@ jobs:
         run: |
           IMAGE="us-east1-docker.pkg.dev/treepolitics-prod/api/api:${GITHUB_SHA::7}"
           echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
-          gcloud builds submit --tag "$IMAGE" --project=treepolitics-prod
+          # --suppress-logs: the scoped deploy SA can't stream Cloud Build logs
+          # (that needs project Viewer/Owner); gcloud still waits for the build.
+          gcloud builds submit --tag "$IMAGE" --project=treepolitics-prod --suppress-logs
 
       - name: Deploy to Cloud Run
         run: |
