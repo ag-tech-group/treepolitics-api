@@ -231,9 +231,9 @@ uv run alembic revision --autogenerate -m "description"
 
 The API runs on Cloud Run in GCP project `treepolitics-prod` (region `us-east1`), backed by a Cloud SQL Postgres instance and Secret Manager.
 
-### Deploy a new revision
+### Deploy a new revision (manual fallback)
 
-From a clean working tree on `main` (set `GCP_ACCOUNT` to your gcloud deploy account):
+Merges to `main` auto-deploy (see [Continuous deployment](#continuous-deployment) below); use this manual path only for out-of-band pushes. From a clean working tree on `main` (set `GCP_ACCOUNT` to your gcloud deploy account):
 
 ```bash
 GCP_ACCOUNT=you@example.com ./scripts/deploy.sh
@@ -265,7 +265,14 @@ The DB user password is in Secret Manager (not committed).
 - **Secrets** in Secret Manager: `DATABASE_URL`, `SECRET_KEY`.
 - **Custom domain** `api.treepolitics.net` via Cloud Run domain mapping.
 
-CI/CD (auto-deploy on merge to `main`) is tracked in [issue #5](https://github.com/ag-tech-group/treepolitics-api/issues/5).
+### Continuous deployment
+
+Every merge to `main` auto-deploys to Cloud Run via GitHub Actions ([`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)), so `scripts/deploy.sh` is only needed for out-of-band pushes.
+
+- **Auth — Workload Identity Federation, no stored keys.** The workflow mints a short-lived OIDC token that impersonates `github-deployer@treepolitics-prod.iam.gserviceaccount.com` (pool `github-pool`, provider `github-provider`, locked to this repo).
+- **Build on the runner, not Cloud Build.** The image is built with `docker build` on the runner and `docker push`ed to Artifact Registry. Cloud Build is intentionally avoided here: its log streaming requires a project-level Viewer role that the scoped deploy SA deliberately lacks.
+- **Deploy.** `gcloud run deploy` with the same flags as `scripts/deploy.sh`.
+- **Migrations are not run in CI.** Apply them first (see [Run migrations against prod](#run-migrations-against-prod)) before merging a schema-changing revision.
 
 ## Testing
 
