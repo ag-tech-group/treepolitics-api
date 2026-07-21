@@ -32,6 +32,12 @@ class Settings(BaseSettings):
     # Logging
     log_level: str = "INFO"
 
+    # Contact form — Resend delivery. Leave unset to disable the endpoint
+    # (it returns 503 until both key and destination are configured).
+    resend_api_key: str = ""
+    contact_to_email: str = ""
+    contact_from_email: str = "Tree Politics <noreply@treepolitics.net>"
+
     # OpenTelemetry
     otel_enabled: bool = False
     otel_service_name: str = "api-template"
