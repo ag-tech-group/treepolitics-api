@@ -51,6 +51,6 @@ jobs:
             --service-account=treepolitics-api-runtime@treepolitics-prod.iam.gserviceaccount.com \
             --add-cloudsql-instances=treepolitics-prod:us-east1:treepolitics-db \
             --set-env-vars="^|^ENVIRONMENT=production|COOKIE_DOMAIN=.treepolitics.net|FRONTEND_URL=https://treepolitics.net|CORS_ORIGINS=https://treepolitics.net,https://www.treepolitics.net" \
-            --set-secrets="DATABASE_URL=DATABASE_URL:latest,SECRET_KEY=SECRET_KEY:latest" \
+            --set-secrets="DATABASE_URL=DATABASE_URL:latest,SECRET_KEY=SECRET_KEY:latest,RESEND_API_KEY=RESEND_API_KEY:latest,CONTACT_TO_EMAIL=CONTACT_TO_EMAIL:latest" \
             --allow-unauthenticated \
             --project=treepolitics-prod

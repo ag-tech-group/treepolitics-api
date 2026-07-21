@@ -17,7 +17,7 @@ from app.config import settings
 from app.features import router as features_router
 from app.logging import setup_logging
 from app.models.user import User
-from app.routers import admin_router, notes_router
+from app.routers import admin_router, contact_router, notes_router
 from app.routers.auth_refresh import router as auth_refresh_router
 from app.schemas.user import UserCreate, UserRead
 from app.telemetry import setup_telemetry
@@ -69,18 +69,19 @@ async def get_current_user(user: User = Depends(current_active_user)):
     return user
 
 
-# Path-specific rate limits for auth endpoints
-_AUTH_RATE_LIMITS: dict[str, RateLimitItem] = {
+# Path-specific rate limits for sensitive public endpoints
+_PATH_RATE_LIMITS: dict[str, RateLimitItem] = {
     "/auth/jwt/login": parse("5/minute"),
     "/auth/register": parse("3/minute"),
     "/auth/refresh": parse("30/minute"),
+    "/contact": parse("3/minute"),
 }
 
 
 @app.middleware("http")
-async def rate_limit_auth(request: Request, call_next) -> Response:
-    """Apply rate limits to auth endpoints."""
-    rate_limit = _AUTH_RATE_LIMITS.get(request.url.path)
+async def rate_limit_paths(request: Request, call_next) -> Response:
+    """Apply rate limits to sensitive endpoints."""
+    rate_limit = _PATH_RATE_LIMITS.get(request.url.path)
     if rate_limit and request.method == "POST":
         key = get_remote_address(request)
         if not limiter._limiter.hit(rate_limit, key):
@@ -153,6 +154,7 @@ async def request_logging_middleware(request: Request, call_next) -> Response:
 
 # API routes
 app.include_router(admin_router)
+app.include_router(contact_router)
 app.include_router(notes_router)
 app.include_router(features_router)
 
