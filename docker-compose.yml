@@ -1,7 +1,7 @@
 services:
   migrate:
     build: .
-    command: ["uv", "run", "alembic", "upgrade", "head"]
+    command: ["alembic", "upgrade", "head"]
     environment:
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/api_template
     depends_on:

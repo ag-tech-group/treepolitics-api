@@ -15,6 +15,9 @@ class Base(DeclarativeBase):
 engine = create_async_engine(
     settings.database_url,
     echo=settings.is_development,
+    # Check pooled connections before use: a DB restart (e.g. Cloud SQL maintenance)
+    # closes them server-side, and reusing one fails the request with a 500.
+    pool_pre_ping=True,
 )
 
 async_session_maker = async_sessionmaker(
