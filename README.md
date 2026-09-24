@@ -158,7 +158,7 @@ async def admin_only(user: User = Depends(require_role("admin"))): ...
 - **Cookie auth**: httpOnly, Secure (in production), SameSite
 - **CORS lockdown**: Explicit origins, methods, and headers (no wildcards in production)
 - **Security headers**: HSTS, X-Frame-Options DENY, X-Content-Type-Options nosniff, Referrer-Policy, Permissions-Policy
-- **Rate limiting**: Per-endpoint limits on auth routes with security event logging
+- **Rate limiting**: Per-endpoint, per-client-IP limits on auth routes with security event logging (client IPs are resolved behind Cloud Run's proxy; see [Client IPs behind Cloud Run](#client-ips-behind-cloud-run))
 - **Production config validation**: Rejects weak secrets and default database credentials at startup
 - **Security event logging**: Structured logs for login, logout, registration, token refresh, and rate limit events
 
@@ -264,6 +264,10 @@ The DB user password is in Secret Manager (not committed).
 - **Runtime SA** `treepolitics-api-runtime@treepolitics-prod.iam.gserviceaccount.com` with `roles/cloudsql.client` and `roles/secretmanager.secretAccessor` (scoped to `DATABASE_URL` and `SECRET_KEY`).
 - **Secrets** in Secret Manager: `DATABASE_URL`, `SECRET_KEY`.
 - **Custom domain** `api.treepolitics.net` via Cloud Run domain mapping.
+
+### Client IPs behind Cloud Run
+
+Cloud Run connects to the container from a link-local address (`169.254.x.x`) and passes the caller's IP in `X-Forwarded-For`. `start.sh` runs uvicorn with `--forwarded-allow-ips 169.254.0.0/16` (override with `FORWARDED_ALLOW_IPS`), so `request.client` — which rate limiting and security logs use — is the real caller. uvicorn takes the right-most untrusted entry, the one Cloud Run appended, so callers can't spoof it by sending their own header. Without this, every request appears to come from the proxy and all callers share one set of rate limits.
 
 ### Continuous deployment
 

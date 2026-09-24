@@ -43,7 +43,8 @@ app.add_middleware(
     allow_headers=["Authorization", "Content-Type"],
 )
 
-# Rate limiting
+# Rate limiting, keyed on request.client: behind Cloud Run that's the caller's real IP
+# because uvicorn trusts the proxy's X-Forwarded-For (see --forwarded-allow-ips in start.sh)
 limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
